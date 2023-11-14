@@ -1,0 +1,5 @@
+<%= form_with url: '/forecasts', method: :get do %>
+  <%= label_tag :search_term, label_cta %>
+  <%= text_field_tag :search_term, nil, autofocus: true %>
+  <%= submit_tag "Get Forecast" %>
+<% end %>

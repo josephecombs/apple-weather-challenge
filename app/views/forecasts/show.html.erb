@@ -1,0 +1,86 @@
+<h1>Weather Information for <%= @weather_data['name'] %></h1>
+
+<!-- Display Current Weather -->
+<div style="display: flex; justify-content: space-between;">
+  <div>
+    <h2>Current Weather</h2>
+    <% if Time.current - @weather_cached_at > 60.seconds %>
+      <p>Last updated: <%= time_ago_in_words(@weather_cached_at) %> ago</p>
+    <% end %>
+    <p>Temperature: <span class="temperature" data-unit="F"><%= ((@weather_data['main']['temp'] - 273.15) * 9/5 + 32).round(1) %> °F</span></p>
+    <p>Humidity: <%= @weather_data['main']['humidity'] %> %</p>
+    <p>Weather: <%= @weather_data['weather'].first['description'].capitalize %></p>
+    <p>Wind Speed: <%= @weather_data['wind']['speed'] %> m/s</p>
+    <p>Cloudiness: <%= @weather_data['clouds']['all'] %> %</p>
+  </div>
+  <div id="map" style="height: 400px; width: 400px;"></div>
+</div>
+
+<%# TODO: put this somehwere more sensible %>
+<script>
+  var osmLayer = new ol.layer.Tile({
+    source: new ol.source.OSM()
+  });
+  var view = new ol.View({
+    center: ol.proj.fromLonLat([<%= @weather_data['coord']['lon'] %>, <%= @weather_data['coord']['lat'] %>]),
+    zoom: 8
+  });
+  var map = new ol.Map({
+    target: 'map',
+    layers: [osmLayer],
+    view: view
+  });
+  var marker = new ol.Feature({
+    geometry: new ol.geom.Point(ol.proj.fromLonLat([<%= @weather_data['coord']['lon'] %>, <%= @weather_data['coord']['lat'] %>]))
+  });
+  var vectorSource = new ol.source.Vector({
+    features: [marker]
+  });
+  var markerVectorLayer = new ol.layer.Vector({
+    source: vectorSource,
+  });
+  map.addLayer(markerVectorLayer);
+</script>
+
+<!-- Display Extended Forecast -->
+<h2>Extended Forecast</h2>
+<% if Time.current - @extended_forecast_cached_at > 60.seconds %>
+  <p>Last updated: <%= time_ago_in_words(@extended_forecast_cached_at) %> ago</p>
+<% end %>
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Average Temperature</th>
+      <th>Humidity</th>
+      <th>Weather</th>
+      <th>Wind Speed</th>
+      <th>Cloudiness</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% 
+    grouped_forecasts = @extended_forecast['list'].group_by { |forecast| Time.at(forecast['dt']).to_date }
+    grouped_forecasts.each do |date, forecasts|
+      avg_temp = forecasts.sum { |f| f['main']['temp'] } / forecasts.size
+      avg_humidity = forecasts.sum { |f| f['main']['humidity'] } / forecasts.size
+      avg_wind_speed = forecasts.sum { |f| f['wind']['speed'] } / forecasts.size
+      avg_cloudiness = forecasts.sum { |f| f['clouds']['all'] } / forecasts.size
+      dominant_weather = forecasts.group_by { |f| f['weather'].first['main'] }.max_by { |_, v| v.size }.first
+    %>
+      <tr>
+        <td><%= date.strftime("%A, %d %B %Y") %></td>
+        <td><span class="temperature" data-unit="F"><%= ((avg_temp - 273.15) * 9/5 + 32).round(1) %> °F</span></td>
+        <td><%= avg_humidity.round(1) %> %</td>
+        <td><%= dominant_weather %></td>
+        <td><%= avg_wind_speed.round(1) %> m/s</td>
+        <td><%= avg_cloudiness.round(1) %> %</td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+
+<div style="margin-top: 30px;">
+  <%= render 'forecasts/forecast_search', label_cta: "Enter new address:" %>
+</div>

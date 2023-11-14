@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>AppleWeatherChallenge</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= stylesheet_link_tag 'application', media: 'all' %>
+
+    <link rel="stylesheet" href="https://openlayers.org/en/v6.5.0/css/ol.css" type="text/css">
+<script src="https://openlayers.org/en/v6.5.0/build/ol.js"></script>
+  </head>
+
+  <body>
+    <%= yield %>
+    <%# TODO: put this somewhere more sensible than in application layout. also obviously DRY out %>
+    <%# TODO: make this globally do imperial / metric toggles (wind speed etc) %>
+    <footer style="position: fixed; bottom: 0; width: 100%; text-align: center;">
+      <button 
+        id="toggleTemperatureUnitButton" 
+        onclick="toggleTemperatureUnit()"
+        style="cursor: pointer;"
+      >
+        Switch to Celsius
+      </button>
+      <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+          if (localStorage.getItem('temperatureUnit') === 'C') {
+            document.getElementById('toggleTemperatureUnitButton').innerText = 'Switch to Fahrenheit';
+          } else {
+            document.getElementById('toggleTemperatureUnitButton').innerText = 'Switch to Celsius';
+          }
+
+          // harmonize whats on the page with what the user preference is on page load. yes this implies a possible "FOUC" situation
+          var elements = document.getElementsByClassName('temperature');
+          for (var i = 0; i < elements.length; i++) {
+            var currentUnit = elements[i].getAttribute('data-unit');
+            var currentTemp = parseFloat(elements[i].innerText);
+            if (currentUnit === 'C' && localStorage.getItem('temperatureUnit') === 'F') {
+              elements[i].innerText = (currentTemp * 9/5 + 32).toFixed(1) + ' °F';
+              elements[i].setAttribute('data-unit', 'F');
+            } else if (currentUnit === 'F' && localStorage.getItem('temperatureUnit') === 'C') {
+              elements[i].innerText = ((currentTemp - 32) * 5/9).toFixed(1) + ' °C';
+              elements[i].setAttribute('data-unit', 'C');
+            }
+          }
+        });
+
+        function toggleTemperatureUnit() {
+          if (localStorage.getItem('temperatureUnit') === 'C') {
+            localStorage.setItem('temperatureUnit', 'F');
+            document.getElementById('toggleTemperatureUnitButton').innerText = 'Switch to Fahrenheit';
+          } else {
+            localStorage.setItem('temperatureUnit', 'C');
+            document.getElementById('toggleTemperatureUnitButton').innerText = 'Switch to Celsius';
+          }
+
+          var elements = document.getElementsByClassName('temperature');
+          for (var i = 0; i < elements.length; i++) {
+            var currentUnit = elements[i].getAttribute('data-unit');
+            var currentTemp = parseFloat(elements[i].innerText);
+            if (currentUnit === 'C') {
+              elements[i].innerText = (currentTemp * 9/5 + 32).toFixed(1) + ' °F';
+              elements[i].setAttribute('data-unit', 'F');
+            } else {
+              elements[i].innerText = ((currentTemp - 32) * 5/9).toFixed(1) + ' °C';
+              elements[i].setAttribute('data-unit', 'C');
+            }
+          }
+        }
+      </script>
+    </footer>
+  </body>
+</html>
+
